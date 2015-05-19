@@ -1,0 +1,46 @@
+Use the following command to uninstall a Toolkit runfile installation:
+$ sudo /usr/local/cuda-X.Y/bin/uninstall_cuda_X.Y.pl
+
+Use the following command to uninstall a Driver runfile installation:
+$ sudo /usr/bin/nvidia-uninstall
+
+Use the following commands to uninstall a RPM/Deb installation:
+$ sudo apt-get --purge remove <package_name>          # Ubuntu
+$ sudo apt-get --purge remove nvidia*                 # Ubuntu
+$ sudo yum remove <package_name>                      # Fedora/Redhat/CentOS
+$ sudo zypper remove <package_name>                   # OpenSUSE/SLES
+
+
+
+
+Install repository meta-data
+Note: When using a proxy server with aptitude, ensure that wget is set up to use the same proxy settings before installing the cuda-repo package.
+$ sudo dpkg -i cuda-repo-<distro>_<version>_<architecture>.deb
+
+Update the Apt repository cache
+$ sudo apt-get update
+
+Install CUDA
+$ sudo apt-get install cuda
+
+Post-installation:
+
+Env:
+$ export PATH=/usr/local/cuda-7.0/bin:$PATH
+$ export LD_LIBRARY_PATH=/usr/local/cuda-7.0/lib64:$LD_LIBRARY_PATH
+
+Writable samples:
+$ cuda-install-samples-7.0.sh <dir>
+
+Verify driver version:
+$ cat /proc/driver/nvidia/version
+
+Compile examples:
+You should compile them by changing to ~/NVIDIA_CUDA-7.0_Samples and typing make. The resulting binaries will be placed under ~/NVIDIA_CUDA-7.0_Samples/bin.
+
+After compilation, find and run deviceQuery under ~/NVIDIA_CUDA-7.0_Samples. 
+
+
+
+082c33b4ce04737f8708fdf87c7779a2
+082c33b4ce04737f8708fdf87c7779a2
