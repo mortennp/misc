@@ -1,0 +1,77 @@
+Install Ubuntu with LVM (Logical Volume Management)
+- Use "Advanced" partitioning and create DATA volume?
+
+
+UFW
+- sudo ufw enable
+- sudo apt-get install gufw
+
+
+Users
+- sudo adduser mortennp
+- sudo adduser mortennp sudo
+
+
+Upgrade
+- sudo apt-get update
+- sudo apt-get upgrade
+- DO NOT:
+	* (Start System Updater aka update-manager, set "Notify me of new Ubuntu version" to "For any new version")
+	* sudo do-release-upgrade, or (use System Updater)
+
+
+Always show GRUB
+- sudo apt-get install gksu
+
+Run Gedit as root (gksu gedit), and open the file /etc/default/grub. There should be something like this in there:
+
+GRUB_HIDDEN_TIMEOUT=0
+GRUB_HIDDEN_TIMEOUT_QUIET=true
+
+Change it to this:
+
+GRUB_HIDDEN_TIMEOUT=10
+GRUB_HIDDEN_TIMEOUT_QUIET=false
+
+Save it, run sudo update-grub from a terminal, and reboot. The GRUB menu should show up.
+
+
+Git clone scripts
+- sudo apt-get install git
+- cd ~/Documents
+- git clone https://github.com/mortennp/misc.git
+
+
+Hide disks rule
+- (Edit 99-hide-disks.rules if new HDDs)
+- sudo cp ~/Documents/misc/ubuntu-scripts/99-hide-disks.rules /etc/udev/rules.d/
+
+
+Chrome
+- Download 64 bit .deb file and select "Yes" to open with Ubuntu Software Center
+
+
+CUDA
+- lspci | grep -i nvidia
+- gcc --version
+- (Download .deb CUDA Toolkit)
+- sudo dpkg -i cuda-repo-<distro>_<version>_<architecture>.deb
+- sudo apt-get update
+- sudo apt-get install cuda
+- cd ~/Documents/misc/ubuntu-scripts
+- ./cuda-export-paths.sh
+- cat /proc/driver/nvidia/version
+- cuda-install-samples-7.0.sh <dest-dir>
+- cd <dest-dir>
+- make
+- run deviceQuery
+
+
+Oracle Java
+- Cf. oracle-java.txt
+
+
+Android Studio
+- kvm
+- Download AS
+- Install
