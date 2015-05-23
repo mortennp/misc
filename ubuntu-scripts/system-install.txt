@@ -38,6 +38,9 @@ Save it, run sudo update-grub from a terminal, and reboot. The GRUB menu should 
 
 Git clone scripts
 - sudo apt-get install git
+- git config --global user.email "mortennp@hotmail.com"
+- git config --global user.name "mortennp"
+- git config --global push.default simple
 - cd ~/Documents
 - git clone https://github.com/mortennp/misc.git
 
@@ -51,6 +54,17 @@ Chrome
 - Download 64 bit .deb file and select "Yes" to open with Ubuntu Software Center
 
 
+X11
+- https://help.ubuntu.com/community/VideoDriverHowto
+- BACKUP: sudo cp /etc/X11/xorg.conf /etc/X11/xorg.conf.old
+- CONFIGURE A: gksu gedit /etc/X11/xorg.conf
+- CONFIGURE B (1/2): X -configure
+- CONFIGURE B (2/2): cp /root/xorg.conf.new /etc/X11/xorg.conf
+- REVERT: sudo cp /etc/X11/xorg.conf.old /etc/X11/xorg.conf
+If reverting back to the original xorg.conf file does not work for whatever reason and you are stuck in the terminal, you can execute the following command:
+- sudo dpkg-reconfigure -phigh xserver-xorg 
+
+
 CUDA
 - lspci | grep -i nvidia
 - gcc --version
@@ -59,12 +73,13 @@ CUDA
 - sudo apt-get update
 - sudo apt-get install cuda
 - cd ~/Documents/misc/ubuntu-scripts
-- ./cuda-export-paths.sh
+- sh cuda-export-paths.sh
 - cat /proc/driver/nvidia/version
-- cuda-install-samples-7.0.sh <dest-dir>
+- ./usr/local/cuda-install-samples-7.0.sh <dest-dir>
 - cd <dest-dir>
 - make
 - run deviceQuery
+- sudo apt-get install build-essential libopencv-dev linux-headers-`uname -r`
 
 
 Oracle Java
@@ -75,3 +90,17 @@ Android Studio
 - kvm
 - Download AS
 - Install
+
+
+Anaconda
+- Download from continiuum.io
+- Install
+- pip install line_monitor
+- pip install mem_monitor
+- Spyder.desktop
+
+
+R
+- R update?
+- RStudio
+- devtools
