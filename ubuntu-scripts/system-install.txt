@@ -1,17 +1,28 @@
+#
 Install Ubuntu with LVM (Logical Volume Management)
 - Use "Advanced" partitioning and create DATA volume?
 
 
+#
+Make Linux use 'Local' time
+- edit /etc/default/rcS
+- add or change the following section
+	# Set UTC=yes if your hardware clock is set to UTC (GMT)
+	UTC=no
+
+#
 UFW
 - sudo ufw enable
 - sudo apt-get install gufw
 
 
+#
 Users
 - sudo adduser mortennp
 - sudo adduser mortennp sudo
 
 
+#
 Upgrade
 - sudo apt-get update
 - sudo apt-get upgrade
@@ -20,6 +31,7 @@ Upgrade
 	* sudo do-release-upgrade, or (use System Updater)
 
 
+#
 Always show GRUB
 - sudo apt-get install gksu
 
@@ -36,6 +48,7 @@ GRUB_HIDDEN_TIMEOUT_QUIET=false
 Save it, run sudo update-grub from a terminal, and reboot. The GRUB menu should show up.
 
 
+#
 Git clone scripts
 - sudo apt-get install git
 - git config --global user.email "mortennp@hotmail.com"
@@ -45,16 +58,19 @@ Git clone scripts
 - git clone https://github.com/mortennp/misc.git
 
 
+#
 Hide disks rule
 - (Edit 99-hide-disks.rules if new HDDs)
 - sudo cp ~/Documents/misc/ubuntu-scripts/99-hide-disks.rules /etc/udev/rules.d/
 
 
+#
 Chrome
 - Download 64 bit .deb file and select "Yes" to open with Ubuntu Software Center
 
 
-X11
+#
+(X11)
 - https://help.ubuntu.com/community/VideoDriverHowto
 - BACKUP: sudo cp /etc/X11/xorg.conf /etc/X11/xorg.conf.old
 - CONFIGURE A: gksu gedit /etc/X11/xorg.conf
@@ -65,7 +81,9 @@ If reverting back to the original xorg.conf file does not work for whatever reas
 - sudo dpkg-reconfigure -phigh xserver-xorg 
 
 
+#
 CUDA
+- sudo apt-get install lm-sensors
 - lspci | grep -i nvidia
 - gcc --version
 - (Download .deb CUDA Toolkit)
@@ -82,16 +100,45 @@ CUDA
 - sudo apt-get install build-essential libopencv-dev linux-headers-`uname -r`
 
 
+#
+(Gparted / LVM)
+- sudo apt-get install gparted
+- sudo apt-get install system-config-lvm
+
+
+#
+KVM
+- https://help.ubuntu.com/community/KVM/Installation
+- egrep -c '(vmx|svm)' /proc/cpuinfo	# must return 1 or more
+- sudo apt-get install cpu-checker
+- kvm-ok 				# must output "KVM acceleration can be used"
+- egrep -c ' lm ' /proc/cpuinfo		# must return 1 or more ('lm' stands for Long Mode aka 64 bit)
+- uname -m				# must return x86_64 (to serve more than 2 GB to guest OS)
+- sudo apt-get install qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils
+- sudo adduser `id -un` libvirtd
+- Logout, login
+- virsh -c qemu:///system list		# must return (empty) list with headers Id, Name, State
+- sudo apt-get install virt-manager	# GUI
+
+
+#
 Oracle Java
 - Cf. oracle-java.txt
 
 
+#
 Android Studio
-- kvm
+- https://developer.android.com/sdk/installing/index.html?pkg=studio
 - Download AS
-- Install
+- Unzip to /usr/local/android-studio
+- sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1
+- sudo desktop-file-install ~/Documents/misc/ubuntu-scripts/android-studio.desktop
+- Start AS from Dash and download SDK
+- Run emulator with ~/Documents/misc/ubuntu-scripts/run-avd-*.sh
+- (only x86 CPU/ABI instances supported)
 
 
+#
 Anaconda
 - Download from continiuum.io
 - Install
@@ -100,6 +147,7 @@ Anaconda
 - Spyder.desktop
 
 
+#
 R
 - R update?
 - RStudio
