@@ -139,16 +139,29 @@ Android Studio
 
 
 #
+Revolution R Open + MKL + RStudio
+- Download RRO and MKL
+- sha1sum -c RRO-3.2.0-Ubuntu-14.04.x86_64.tar.gz.sha1
+- sha1sum -c RevoMath-3.2.0.tar.gz.sha1 
+- sudo apt-get update
+- tar -xzf RRO-3.2.0-Ubuntu-14.04.x86_64.tar.gz
+- cd RRO-3.2.0
+- sudo ./install.sh
+- cd ..
+- tar -xzf RevoMath-3.2.0.tar.gz
+- cd RevoMath
+- sudo ./RevoMath.sh
+- Download RStudio .deb and open with Software Center
+- sudo apt-get build-dep libcurl4-gnutls-dev
+- sudo apt-get install libcurl4-gnutls-dev
+- sudo apt-get install libxml2-dev
+- Open RStudio and execute "install.packages("devtools")"
+
+
+#
 Anaconda
 - Download from continiuum.io
 - Install
 - pip install line_monitor
 - pip install mem_monitor
 - Spyder.desktop
-
-
-#
-R
-- R update?
-- RStudio
-- devtools
