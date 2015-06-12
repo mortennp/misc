@@ -98,7 +98,9 @@ CUDA
 - make
 - run deviceQuery
 - sudo apt-get install build-essential libopencv-dev linux-headers-`uname -r`
-
+- To blacklist nvidia driver for X11 so Nsight can debug/break in .cu files:
+- 	sudo cp ~/Documents/misc/ubuntu-scripts/blacklist-nvidia.conf /etc/modprobe.d/
+-	sudo update-initramfs -u
 
 #
 (Gparted / LVM)
@@ -159,9 +161,25 @@ Revolution R Open + MKL + RStudio
 
 
 #
+Emacs
+- sudo apt-get install emacs24
+
+
+#
 Anaconda
 - Download from continiuum.io
-- Install
-- pip install line_monitor
-- pip install mem_monitor
-- Spyder.desktop
+- bash Anaconda3-2.2.0-Linux-x86_64.sh 
+- 	select /home/mortennp/Anaconda3 as location
+- 	select "no" to update PATH in .bashrc
+- 	instead use: export PATH=/home/mortennp/Anaconda3/bin:$PATH
+- sudo desktop-file-install ~/Documents/misc/ubuntu-scripts/spyder.desktop
+- conda update conda
+- conda update anaconda
+- pip install line_profiler
+- %load_ext line_profiler
+- %lprun ...
+- pip install -U memory_profiler
+- pip install psutil
+- %load_ext memory_profiler
+- %mprun ...
+- (https://github.com/Nodd/spyder_line_profiler)

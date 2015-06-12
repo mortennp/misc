@@ -1,8 +1,8 @@
 [Desktop Entry]
 Name=Spyder
 Comment=Anaconda Spyder
-Exec=/usr/local/anaconda/anaconda3/bin/spyder
-Icon=/usr/local/anaconda/anaconda3/lib/python3.4/site-packages/spyderlib/images/spyder.svg
+Exec=/home/mortennp/Anaconda3/bin/spyder
+Icon=/home/mortennp/Anaconda3/lib/python3.4/site-packages/spyderlib/images/spyder.svg
 Terminal=false
 Type=Application
 Categories=Utility;IDE;Development;
