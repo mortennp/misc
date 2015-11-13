@@ -90,10 +90,11 @@ CUDA
 - sudo dpkg -i cuda-repo-<distro>_<version>_<architecture>.deb
 - sudo apt-get update
 - sudo apt-get install cuda
+- (ln -s /usr/local/<install-dir> /usr/local/cuda)
 - cd ~/Documents/misc/ubuntu-scripts
 - sh cuda-export-paths.sh
 - cat /proc/driver/nvidia/version
-- ./usr/local/cuda-install-samples-7.0.sh <dest-dir>
+- ./usr/local/cuda/bin/cuda-install-samples-7.0.sh <dest-dir>
 - cd <dest-dir>
 - make
 - run deviceQuery
@@ -101,6 +102,11 @@ CUDA
 - To blacklist nvidia driver for X11 so Nsight can debug/break in .cu files:
 - 	sudo cp ~/Documents/misc/ubuntu-scripts/blacklist-nvidia.conf /etc/modprobe.d/
 -	sudo update-initramfs -u
+
+"
+A modprobe blacklist file has been created at /etc/modprobe.d to prevent Nouveau from loading. This can be reverted by deleting /etc/modprobe.d/nvidia-graphics-drivers.conf.
+A new initrd image has also been created. To revert, please replace /boot/initrd-3.16.0-49-generic with /boot/initrd-$(uname -r)-backup.
+"
 
 #
 (Gparted / LVM)
@@ -183,3 +189,42 @@ Anaconda
 - %load_ext memory_profiler
 - %mprun ...
 - (https://github.com/Nodd/spyder_line_profiler)
+
+
+#
+VirtualBox
+- (https://help.ubuntu.com/community/VirtualBox/Installation)
+- sudo sh -c "echo 'deb http://download.virtualbox.org/virtualbox/debian '$(lsb_release -cs)' contrib non-free' > /etc/apt/sources.list.d/virtualbox.list"
+- wget -q http://download.virtualbox.org/virtualbox/debian/oracle_vbox.asc -O- | sudo apt-key add -
+- sudo apt-get update
+- sudo apt-get install virtualbox-4.3 dkms
+
+
+#
+GLFW3 (arrayfire dependency)
+- https://github.com/arrayfire/arrayfire/wiki/GLFW-for-ArrayFire
+- sudo apt-get install build-essential cmake cmake-curses-gui xorg-dev libglu1-mesa-dev
+- wget https://github.com/glfw/glfw/archive/3.0.4.zip -O glfw-3.0.4.zip
+- unzip glfw-3.0.4.zip
+- cd glfw-3.0.4
+- mkdir build
+- cd build
+- cmake .. -DBUILD_SHARED_LIBS=ON
+- make -j8
+- sudo make install
+
+
+#
+arrayfire
+- sudo apt-get install -y build-essential git subversion cmake libfreeimage-dev
+- sudo apt-get install -y cmake-curses-gui
+- sudo apt-get install libboost-all-dev
+- sudo apt-get install libglew-dev libglewmx-dev # libglfw3-dev
+- git clone https://github.com/arrayfire/arrayfire.git
+- cd arrayfire
+- git submodule init
+- git submodule update
+- mkdir build && cd build
+- cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_CUDA=ON -DBUILD_OPENCL=ON # Enables building all 3 backends
+- make -j4
+- sudo make install
