@@ -191,6 +191,28 @@ Anaconda
 - (https://github.com/Nodd/spyder_line_profiler)
 
 
+#GraphLab Create
+# Create a new conda environment with Python 2.7.x
+conda create -n dato-env python=2.7 anaconda
+# Activate the conda environment
+source activate dato-env
+# Ensure pip is updated to the latest version
+# mini conda users may need to install pip first, using 'conda install pip'
+conda update pip
+# Install your licensed copy of GraphLab Create
+pip install --upgrade --no-cache-dir https://get.dato.com/GraphLab-Create/1.8.1/mortennp@hotmail.com/273A-8803-FA50-AB78-26EB-D5F7-CC13-FDF0/GraphLab-Create-License.tar.gz
+# Install or update IPython and IPython Notebook
+# mini conda users may need to install first, using 'conda install ipython ipython-notebook'
+conda update ipython ipython-notebook
+
+
+#TensorFlow
+conda create -n tf-env python=2.7 anaconda
+source activate tf-env
+conda update pip
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.6.0-cp27-none-linux_x86_64.whl --ignore-installed
+
+
 #
 VirtualBox
 - (https://help.ubuntu.com/community/VirtualBox/Installation)
