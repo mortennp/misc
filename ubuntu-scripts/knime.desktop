@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=KNIME
+Comment=KNIME
+Exec=/home/mortennp/Knime/knime_3.1.0/knime
+Icon=/home/mortennp/Knime/knime_3.1.0/icon.xpm
+Terminal=false
+Type=Application
+Categories=Utility;IDE;Development;
