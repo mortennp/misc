@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+from pentago_env import PentagoEnv
+from tabular_q_agent import TabularQAgent
+from random_agent import RandomAgent
+from deep_q_agent_keras import DeepQAgentKeras
+
+def main():
+    episodes = 1000000
+    episodes_verbose_interval = 1000
+    
+    env = PentagoEnv()    
+    agent1 = DeepQAgentKeras(env) #TabularQAgent(env, "1", unpickle=True)
+    agent2 = RandomAgent(env)
+    
+    for e in range(episodes):
+        agent1.reset()
+        agent2.reset()
+        obs = env.reset()
+        done = False
+        info = None
+        verbose = e % episodes_verbose_interval == 0
+        if verbose: print("\n Episode {}".format(e))
+        while not done:
+            action1 = agent1.act(obs, verbose)
+            obs_next, reward, done, info = env.step(action1)
+            agent1.learn(obs, action1, obs_next, reward, done, info, verbose)
+            obs = obs_next
+            if not done:
+                action2 = agent2.act(obs, False)
+                obs_next, reward, done, info = env.step(action2)
+                agent2.learn(obs, action1, obs_next, reward, done, info, verbose)
+                obs = obs_next
+            if verbose: print(obs)
+        if verbose: print(info)
+        agent1.trace(verbose)
+
+
+if __name__ == '__main__':
+    main()

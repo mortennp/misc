@@ -1,0 +1,39 @@
+#http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cluster_computing.html
+
+# Connect
+ssh -i "nvidia-docker-p2xl.pem" ec2-user@ec2-54-194-16-1.eu-west-1.compute.amazonaws.com
+
+# Prepare NVIDIA driver update
+sudo yum update -y
+sudo yum erase nvidia cuda
+sudo reboot
+
+# Install NVIDIA driver
+sudo yum install -y gcc kernel-devel-`uname -r`
+wget http://us.download.nvidia.com/XFree86/Linux-x86_64/367.55/NVIDIA-Linux-x86_64-367.55.run
+sudo /bin/bash ./NVIDIA-Linux-x86_64-367.55.run
+sudo reboot
+nvidia-smi -q | head
+
+# Optimizing GPU Settings (P2 Instances Only)
+sudo nvidia-smi -pm 1
+sudo nvidia-smi --auto-boost-default=0
+sudo nvidia-smi -ac 2505,875
+
+# Install docker
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+sudo reboot
+docker info
+
+# Install nvidia-docker
+# Install nvidia-docker and nvidia-docker-plugin
+wget -P /tmp https://github.com/NVIDIA/nvidia-docker/releases/download/v1.0.0-rc.3/nvidia-docker_1.0.0.rc.3_amd64.tar.xz
+sudo tar --strip-components=1 -C /usr/bin -xvf /tmp/nvidia-docker*.tar.xz && rm /tmp/nvidia-docker*.tar.xz
+# Run nvidia-docker-plugin
+sudo -b nohup nvidia-docker-plugin > /tmp/nvidia-docker.log
+# Test nvidia-smi
+nvidia-docker run --rm nvidia/cuda:8.0-cudnn5-devel nvidia-smi
+
+
