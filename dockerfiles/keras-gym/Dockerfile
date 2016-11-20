@@ -1,15 +1,20 @@
-FROM anaconda-tfgpu-devel
+FROM cuda-tf-anaconda
+
+#RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 # Virtual env
 RUN conda create --name keras-gym python=2.7
-RUN source activate keras-gym \
-	&& conda update -y conda 
-RUN source activate keras-gym \
-	&& conda update -y anaconda
+#RUN source activate keras-gym \
+#	&& conda update -y conda 
+#RUN source activate keras-gym \
+#	&& conda update -y anaconda
 
 # Tensorflow
 RUN source activate keras-gym \
-	&& pip install --upgrade /tensorflow/pip/tensorflow-*.whl
+	&& conda install -y six funcsigs pbr mock setuptools protobuf numpy 
+ENV TF_BINARY_URL https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow-0.11.0-cp27-none-linux_x86_64.whl
+RUN source activate keras-gym \
+	&& pip install --ignore-installed --upgrade ${TF_BINARY_URL}
 
 # Keras
 RUN source activate keras-gym \

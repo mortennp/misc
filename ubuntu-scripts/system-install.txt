@@ -45,6 +45,8 @@ Change it to this:
 GRUB_HIDDEN_TIMEOUT=10
 GRUB_HIDDEN_TIMEOUT_QUIET=false
 
+Also set GRUB_DEFAULT to zero-based index of full text of default menu item.
+
 Save it, run sudo update-grub from a terminal, and reboot. The GRUB menu should show up.
 
 
