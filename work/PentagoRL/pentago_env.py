@@ -13,7 +13,7 @@ class PentagoEnv(gym.Env):
     
     def __init__(self):
         # Constants
-        self.size = 4
+        self.size = 6
         self.halfsize = self.size / 2        
         self.loose_reward = -10
         self.illegal_move_reward = -5

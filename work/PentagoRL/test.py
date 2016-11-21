@@ -7,10 +7,11 @@ from deep_q_agent_keras import DeepQAgentKeras
 def main():
     episodes = 1000000
     episodes_verbose_interval = 1000
+    episodes_save_model_interval = 10000
     
     env = PentagoEnv()    
-    agent1 = DeepQAgentKeras(env) #TabularQAgent(env, "1", unpickle=True)
-    agent2 = RandomAgent(env)
+    agent1 = DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
+    agent2 = RandomAgent(env, "Random-2", load_model=True)
     
     for e in range(episodes):
         agent1.reset()
@@ -19,6 +20,7 @@ def main():
         done = False
         info = None
         verbose = e % episodes_verbose_interval == 0
+        save = e % episodes_save_model_interval == 0
         if verbose: print("\n Episode {}".format(e))
         while not done:
             action1 = agent1.act(obs, verbose)
@@ -32,7 +34,8 @@ def main():
                 obs = obs_next
             if verbose: print(obs)
         if verbose: print(info)
-        agent1.trace(verbose)
+        agent1.trace(verbose, save)
+        agent2.trace(verbose, save)
 
 
 if __name__ == '__main__':

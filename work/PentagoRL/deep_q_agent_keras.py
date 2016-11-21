@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from os import path
 import random
 import numpy as np
-from keras.models import Model, Sequential
+from keras.models import Model
 from keras.layers import Convolution2D, Dense, Flatten, Input
 from keras.optimizers import RMSprop
 from keras import backend as kb
@@ -10,20 +11,22 @@ from keras import backend as kb
 #https://github.com/sherjilozair/dqn/blob/master/dqn.py
 
 class DeepQAgentKeras(object):
-    def __init__(self, env,
-                 epsilon=0.1, mbsz=32, discount=0.9, memory=50,
-                 save_name='basic'):
-        obs = env.reset()
+    def __init__(self, env, tag, load_model=True,
+                 epsilon=0.1, mbsz=32, discount=0.9, memory=50):
+        obs = env.reset()        
         self.state_size = np.multiply.reduce(obs.shape)
         #self.state_shape = obs.shape
         self.number_of_actions = env.action_space.n
+        
+        self.tag = tag
+        self.load_model = load_model
         
         self.epsilon = epsilon
         self.mbsz = mbsz
         self.discount = discount
         self.memory = memory
         
-        self.save_name = save_name
+        self.save_name = "deep-{}.h5".format(self.tag)
         
         self.build_functions()
         
@@ -42,16 +45,12 @@ class DeepQAgentKeras(object):
 #            border_mode='same', activation='relu')(H)
 #        H = Flatten()(H)
         H = Dense(256, activation='relu')(S)
-        V = Dense(self.number_of_actions, activation='softmax')(H)
+        V = Dense(self.number_of_actions)(H)
         self.model = Model(S, V)
-#        try:
-#            print "Loading from {}.h5".format(self.save_name)
-#            self.model.load_weights('{}.h5'.format(self.save_name))
-#        except:
-#            print "Training a new model"
-#        self.model = Sequential()
-#        self.model.add(Dense(256, activation='relu', input_shape=self.state_shape))
-#        self.model.add(Dense(self.number_of_actions))
+        
+        if self.load_model and path.isfile(self.save_name):
+            print "'{}' Loading from {}".format(self.tag, self.save_name)
+            self.model.load_weights(self.save_name)
 
 
     def build_functions(self):
@@ -63,18 +62,18 @@ class DeepQAgentKeras(object):
         R = Input(shape=(1,), dtype='float32')
         T = Input(shape=(1,), dtype='int32')
         
-        self.value_fn = kb.function([S], self.model(S))
+        self.value_fn = kb.function([S], [self.model(S)])
 
         values = self.model(S)
         next_values = self.model(NS) #disconnected_grad(self.model(NS))
-        future_value = (1-T) * next_values.max(axis=1, keepdims=True)
+        future_value = kb.cast((1-T), dtype='float32') * kb.max(next_values, axis=1, keepdims=True)
         discounted_future_value = self.discount * future_value
         target = R + discounted_future_value
-        cost = ((values[:, A] - target)**2).mean()
+        cost = kb.mean(kb.pow(values - target, 2))
         opt = RMSprop(0.0001)
         params = self.model.trainable_weights
         updates = opt.get_updates(params, [], cost)
-        self.train_fn = kb.function([S, NS, A, R, T], cost, updates=updates)
+        self.train_fn = kb.function([S, NS, A, R, T], [cost], updates=updates)
 
         
     def reset(self):
@@ -90,7 +89,7 @@ class DeepQAgentKeras(object):
             action = np.random.randint(self.number_of_actions)
         else:
             values = self.value_fn([state.flatten()[None, :]])
-            action = values.argmax()
+            action = np.argmax(values)
         return action
 
         
@@ -124,8 +123,9 @@ class DeepQAgentKeras(object):
         return self.train_fn([S, NS, A, R, T])
         
         
-    def trace(self, verbose=False):
+    def trace(self, verbose=False, save=False):
         if verbose:
-            print("Error cost: {}".format(self.error_cost))
-            self.model.save_weights('{}.h5'.format(self.save_name), True)
-        return
+            print("'{}' Error cost: {}".format(self.tag, self.error_cost))
+        if save:
+            self.model.save_weights(self.save_name, True)
+        

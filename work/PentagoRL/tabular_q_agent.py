@@ -8,8 +8,9 @@ from gym.spaces import prng
 #https://github.com/openai/gym/blob/master/examples/agents/tabular_q_agent.py
 
 class TabularQAgent(object):    
-    def __init__(self, env, pickle_suffix, unpickle=True, **userconfig):
+    def __init__(self, env, tag, load_model=True, **userconfig):
         self.env = env
+        self.tag = tag
         self.action_n = self.env.action_space.n
         self.config = {            
             "init_mean" : 0.0,      # Initialize Q values with this mean
@@ -20,9 +21,10 @@ class TabularQAgent(object):
             }        
         self.config.update(userconfig)
         
-        self.q_file_name = "q-{}.p".format(pickle_suffix)
-        self.obs_idx_map_file_name = "obs_idx_map-{}.p".format(pickle_suffix)
-        if unpickle and path.isfile(self.q_file_name) and path.isfile(self.obs_idx_map_file_name):
+        self.q_file_name = "tabular-q-{}.p".format(tag)
+        self.obs_idx_map_file_name = "tabular-obs_idx_map-{}.p".format(tag)
+        if load_model and path.isfile(self.q_file_name) and path.isfile(self.obs_idx_map_file_name):
+            print "'{}' Loading from {} and {}".format(self.tag, self.q_file_name, self.obs_idx_map_file_name)
             with open(self.q_file_name, "rb") as f:
                 self.q = pickle.load(f)
             with open(self.obs_idx_map_file_name, "rb") as f:
@@ -42,14 +44,12 @@ class TabularQAgent(object):
     def act(self, obs, verbose=False, eps=None):
         if eps is None: eps = self.config["eps"] # epsilon greedy.
         actions = self.q[self.get_obs_idx(obs)]
-        #if verbose: print(actions)
         if np.random.random() > eps:
             buf = np.argwhere(actions == np.amax(actions))
             buf_idx = prng.np_random.randint(len(buf))
             action = buf[buf_idx][0]
         else:
             action = self.env.action_space.sample()
-        #if verbose: print(action)
         return action
         
 
@@ -62,11 +62,12 @@ class TabularQAgent(object):
             self.config["learning_rate"] * (self.q[obs_idx][action] - reward - self.config["discount"] * future)
             
             
-    def trace(self, verbose=False):
-        if verbose: print("Total reward: {}".format(self.total_reward))
-        if verbose: print("Actions: {}".format(self.actions))
+    def trace(self, verbose=False, save=False):
         if verbose:
-            print("States seen: {}".format(len(self.q)))
+            print("'{}' Total reward: {}".format(self.tag, self.total_reward))
+            print("'{}' Actions: {}".format(self.tag, self.actions))
+        if save:
+            print("'{}' States seen: {}".format(self.tag,len(self.q)))
             with open(self.q_file_name, "wb") as f:
                 pickle.dump(self.q, f)
             with open(self.obs_idx_map_file_name, "wb") as f:
