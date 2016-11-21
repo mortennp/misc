@@ -15,7 +15,7 @@ class RandomAgent(object):
         if load_model and path.isfile(self.legal_actions_file_name) and path.isfile(self.obs_idx_map_file_name):
             print "'{}' Loading from {} and {}".format(self.tag, self.legal_actions_file_name, self.obs_idx_map_file_name)
             with open(self.legal_actions_file_name, "rb") as f:
-                self.legal_actions_file_name = pickle.load(f)
+                self.legal_actions_masks = pickle.load(f)
             with open(self.obs_idx_map_file_name, "rb") as f:
                 self.obs_idx_map = pickle.load(f)
                 self.obs_idx_num = len(self.obs_idx_map)

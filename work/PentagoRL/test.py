@@ -3,6 +3,7 @@ from pentago_env import PentagoEnv
 from tabular_q_agent import TabularQAgent
 from random_agent import RandomAgent
 from deep_q_agent_keras import DeepQAgentKeras
+from tatsuyaokubo_dqn_agent import TatsuyaokuboDqnAgent
 
 def main():
     episodes = 1000000
@@ -10,7 +11,7 @@ def main():
     episodes_save_model_interval = 10000
     
     env = PentagoEnv()    
-    agent1 = DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
+    agent1 = TatsuyaokuboDqnAgent(env.action_space.n) # DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
     agent2 = RandomAgent(env, "Random-2", load_model=True)
     
     for e in range(episodes):

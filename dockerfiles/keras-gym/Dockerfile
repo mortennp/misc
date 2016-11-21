@@ -18,7 +18,7 @@ RUN source activate keras-gym \
 
 # Keras
 RUN source activate keras-gym \
-	&& conda install -y quandl pyyaml
+	&& conda install -y quandl pyyaml scipy h5py
 RUN source activate keras-gym \
 	&& pip install --no-deps git+git://github.com/fchollet/keras.git
 
@@ -28,3 +28,10 @@ RUN source activate keras-gym \
 RUN source activate keras-gym \
 	&& pip install pyglet gym
 
+RUN sudo apt-get install zlib1g-dev cmake
+RUN source activate keras-gym \
+	&& pip install gym[atari]
+
+# if "Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.":
+#	conda install -f mkl mkl-service
+#	conda install -f numpy scipy scikit-learn scikit-image numexpr
