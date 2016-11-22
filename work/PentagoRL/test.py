@@ -11,8 +11,8 @@ def main():
     episodes_save_model_interval = 10000
     
     env = PentagoEnv()    
-    agent1 = TatsuyaokuboDqnAgent(env.action_space.n) # DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
-    agent2 = RandomAgent(env, "Random-2", load_model=True)
+    agent1 = TatsuyaokuboDqnAgent(env.action_space.n, "Tatsuyaokubo-1", load_model=False) # DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
+    agent2 = RandomAgent(env, "Random-2", load_model=False)
     
     for e in range(episodes):
         agent1.reset()
@@ -36,7 +36,7 @@ def main():
             if verbose: print(obs)
         if verbose: print(info)
         agent1.trace(verbose, save)
-        agent2.trace(verbose, save)
+        agent2.trace(verbose, False)
 
 
 if __name__ == '__main__':
