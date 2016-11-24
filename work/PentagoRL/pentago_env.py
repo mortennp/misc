@@ -11,24 +11,27 @@ class PentagoEnv(gym.Env):
     }
     
     
-    def __init__(self):
+    def __init__(self, size, opponent_starts = False, opponent_policy = None):
         # Constants
-        self.size = 6
-        self.halfsize = self.size / 2        
-        self.loose_reward = -10
-        self.illegal_move_reward = -5
-        self.legal_move_reward = -1
-        self.win_reward = 10
-        
-        #self.viewer = None
-        
-        # Size of board * 4 quadrants * 2 clock rotate directions
-        moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]
+        self.size = size
+        self.halfsize = self.size / 2
+        self.opponent_starts = opponent_starts
+        self.opponent_policy = opponent_policy        
+
+        self.loose_reward = -1
+        self.illegal_move_reward = -.5
+        self.legal_move_reward = -.1
+        self.tie_reward = 0
+        self.win_reward = 1
+               
+        # Board: size * 4 quadrants * 2 clock rotate directions
+        moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]        
         self.action_map = {action: move for (action, move) in enumerate(moves)}
-        self.action_space = spaces.Discrete(len(moves))
+        #self.moves_map = {move: action for (action, move in enumerate(moves)}
         
-        # 3 "colors" pr square
-        self.observation_space = spaces.Box(low=0, high=2, shape=(self.size, self.size))
+        # Spaces
+        self.observation_space = spaces.Box(low=0, high=2, shape=(self.size, self.size)) # 3 "colors" pr square
+        self.action_space = spaces.Discrete(len(moves))
 
         self._seed()
         self._reset()
@@ -39,43 +42,76 @@ class PentagoEnv(gym.Env):
         return [seed]
 
 
-    def _step(self, action):
-        self.switch_player()
+    def _reset(self):
+        self.player = 2 if self.opponent_starts else 1
+        self.opponent = 2 if self.player == 1 else 1 
 
-        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        move = self.action_map[action]
-        legal_move = self.play_move(move)
+        self.board = np.zeros((self.size, self.size), dtype=np.uint8)
         
+        if self.opponent_starts:
+            _ = self.take_opponent_action()
+
+        return self.board
+
+
+    def _step(self, action):
+        # Take player action
+        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+        legal_move = self.play_move(action, self.player)
         if not legal_move:
             return self.board, self.illegal_move_reward, True, "Player {}: illegal move".format(self.player)
-                     
-        if self.has_player_won(self.player):
+
+        player_won = self.has_player_won(self.player)
+        if player_won:
             return self.board, self.win_reward, True, "Player {}: won".format(self.player)
-        if self.has_player_won(self.opponent):
+        opponent_won = self.has_player_won(self.opponent) 
+        if opponent_won:
             return self.board, self.loose_reward, True, "Player {}: lost".format(self.player)
-        
-        return self.board, self.legal_move_reward, False, "Player {}: legal move".format(self.player)           
+        if player_won and opponent_won:
+            return self.board, self.tie_reward, True, "Player {}: tied".format(self.player)
 
+        # Take opponent action
+        legal_move = self.take_opponent_action()
+        if not legal_move: # Note: tie reward!!!
+            return self.board, self.tie_move_reward, True, "Player {}: illegal move".format(self.opponent)
 
-    def _reset(self):
-        self.player = 2
-        self.opponent = 2 if self.player == 1 else 1 
-        self.board = np.zeros((self.size, self.size), dtype=np.uint8)
-        return self.board
+        player_won = self.has_player_won(self.player)
+        if player_won:
+            return self.board, self.win_reward, True, "Player {}: lost".format(self.opponent)
+        opponent_won = self.has_player_won(self.opponent) 
+        if opponent_won:
+            return self.board, self.loose_reward, True, "Player {}: won".format(self.opponent)
+        if player_won and opponent_won:
+            return self.board, self.tie_reward, True, "Player {}: tied".format(self.opponent)
+
+        # Return non-terminal state 
+        return self.board, self.legal_move_reward, False, "Player {}: legal move".format(self.player)
 
         
     def _render(self, mode='human', close=False):
         #print(self.board)
         return
+
+
+    def take_opponent_action(self):
+        if self.opponent_policy == None:
+            action = self.np_random.randint(self.action_space.n)
+        else:
+            action = opponent_policy.get_action()
+        return = self.play_move(action, self.opponent)      
             
         
-    def play_move(self, move):
+    def play_move(self, action, player):
+        # Lookup move details
+        move = self.action_map[action]
         ((x,y), quadrant, clockwise) = move
-        
+
+        # Check legal move
         if self.board[x, y] > 0:
             return False
-        self.board[x, y]= self.player
 
+        # Make move
+        self.board[x, y] = player
         x_, y_= 0, 0
         if quadrant == 1 or quadrant == 3:
             x_ += self.halfsize
@@ -89,14 +125,9 @@ class PentagoEnv(gym.Env):
                     oldboard[x_ + j][y_ + self.halfsize - 1 - i]
 
         return True
-        
-        
-    def switch_player(self):
-        self.player = 2 if self.player == 1 else 1
-        self.opponent = 2 if self.player == 1 else 1 
 
     
-    def has_player_won(self, player):     
+    def has_player_won(self, player):
         self.winseq = np.ones(self.size - 1) * player
 
         #check lines & columns
@@ -124,5 +155,5 @@ class PentagoEnv(gym.Env):
         return False
         
         
-    def is_winseq(self, l):
-        return np.all(np.equal(l, self.winseq))
+    def is_winseq(self, seq):
+        return np.all(np.equal(seq, self.winseq))
