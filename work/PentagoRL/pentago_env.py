@@ -4,6 +4,8 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
+INFO_KEY = "reason"
+
 class PentagoEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
@@ -22,7 +24,9 @@ class PentagoEnv(gym.Env):
         self.illegal_move_reward = -.5
         self.legal_move_reward = -.1
         self.tie_reward = 0
-        self.win_reward = 1
+        self.win_reward = 1        
+
+        self.episode = 0
                
         # Board: size * 4 quadrants * 2 clock rotate directions
         moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]        
@@ -43,13 +47,18 @@ class PentagoEnv(gym.Env):
 
 
     def _reset(self):
+        self.episode += 1
+
+        if self.episode % 1000 == 0:
+            print(self.board)
+
         self.player = 2 if self.opponent_starts else 1
         self.opponent = 2 if self.player == 1 else 1 
 
         self.board = np.zeros((self.size, self.size), dtype=np.uint8)
         
         if self.opponent_starts:
-            _ = self.take_opponent_action()
+            _ = self.make_opponent_move()
 
         return self.board
 
@@ -57,35 +66,35 @@ class PentagoEnv(gym.Env):
     def _step(self, action):
         # Take player action
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        legal_move = self.play_move(action, self.player)
+        legal_move = self.play_action(action, self.player)
         if not legal_move:
-            return self.board, self.illegal_move_reward, True, "Player {}: illegal move".format(self.player)
+            return self.board, self.illegal_move_reward, True, {INFO_KEY: "Player {}: illegal move".format(self.player)}
 
         player_won = self.has_player_won(self.player)
         if player_won:
-            return self.board, self.win_reward, True, "Player {}: won".format(self.player)
+            return self.board, self.win_reward, True, {INFO_KEY: "Player {}: won".format(self.player)}
         opponent_won = self.has_player_won(self.opponent) 
         if opponent_won:
-            return self.board, self.loose_reward, True, "Player {}: lost".format(self.player)
+            return self.board, self.loose_reward, True, {INFO_KEY: "Player {}: lost".format(self.player)}
         if player_won and opponent_won:
-            return self.board, self.tie_reward, True, "Player {}: tied".format(self.player)
+            return self.board, self.tie_reward, True, {INFO_KEY: "Player {}: tied".format(self.player)}
 
         # Take opponent action
-        legal_move = self.take_opponent_action()
+        legal_move = self.make_opponent_move()
         if not legal_move: # Note: tie reward!!!
-            return self.board, self.tie_move_reward, True, "Player {}: illegal move".format(self.opponent)
+            return self.board, self.tie_move_reward, True, {INFO_KEY: "Player {}: illegal move".format(self.opponent)}
 
         player_won = self.has_player_won(self.player)
         if player_won:
-            return self.board, self.win_reward, True, "Player {}: lost".format(self.opponent)
+            return self.board, self.win_reward, True, {INFO_KEY: "Player {}: lost".format(self.opponent)}
         opponent_won = self.has_player_won(self.opponent) 
         if opponent_won:
-            return self.board, self.loose_reward, True, "Player {}: won".format(self.opponent)
+            return self.board, self.loose_reward, True, {INFO_KEY: "Player {}: won".format(self.opponent)}
         if player_won and opponent_won:
-            return self.board, self.tie_reward, True, "Player {}: tied".format(self.opponent)
+            return self.board, self.tie_reward, True, {INFO_KEY: "Player {}: tied".format(self.opponent)}
 
         # Return non-terminal state 
-        return self.board, self.legal_move_reward, False, "Player {}: legal move".format(self.player)
+        return self.board, self.legal_move_reward, False, {INFO_KEY: "Player {}: legal move".format(self.player)}
 
         
     def _render(self, mode='human', close=False):
@@ -93,19 +102,30 @@ class PentagoEnv(gym.Env):
         return
 
 
-    def take_opponent_action(self):
+    def make_opponent_move(self):
         if self.opponent_policy == None:
-            action = self.np_random.randint(self.action_space.n)
+            empty_squares = np.argwhere(self.board == 0)
+            nb_legal_moves = len(empty_squares)
+            assert nb_legal_moves > 0, "No possible legal moves for opponent"
+            square_idx = self.np_random.randint(nb_legal_moves)
+            x = empty_squares[square_idx][0]
+            y = empty_squares[square_idx][1]
+            quadrant = self.np_random.randint(2)
+            clockwise = self.np_random.randint(2)
+            return self.play_move(x, y, quadrant, clockwise, self.opponent)
         else:
             action = opponent_policy.get_action()
-        return = self.play_move(action, self.opponent)      
+            return self.play_action(action, self.opponent)      
             
         
-    def play_move(self, action, player):
+    def play_action(self, action, player):
         # Lookup move details
         move = self.action_map[action]
         ((x,y), quadrant, clockwise) = move
+        return self.play_move(x, y, quadrant, clockwise, player)
 
+
+    def play_move(self, x, y, quadrant, clockwise, player):
         # Check legal move
         if self.board[x, y] > 0:
             return False
