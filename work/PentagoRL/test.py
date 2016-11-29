@@ -1,42 +1,43 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 from pentago_env import PentagoEnv
 from tabular_q_agent import TabularQAgent
 from random_agent import RandomAgent
-from deep_q_agent_keras import DeepQAgentKeras
-from tatsuyaokubo_dqn_agent import TatsuyaokuboDqnAgent
 
-def main():
-    episodes = 1000000
-    episodes_verbose_interval = 1000
-    episodes_save_model_interval = 10000
+SEED = 123
+SIZE = 4
+AGENT_STARTS = True
+
+EPISODES = 1000000
+EPISODES_VERBOSE_INTERVAL = 10000
+EPISODES_SAVE_MODEL_INTERVAL = 100000
+
+def main():    
+    np.random.seed(SEED)
+    opponent_policy = RandomAgent("Player 2 Random")    
+    env = PentagoEnv(SIZE, opponent_policy, agent_starts = AGENT_STARTS)
+    env.seed(SEED)
+    nb_actions = env.action_space.n
+
+    agent = TabularQAgent(env, "Player 1 Tabular Q", opponent_policy, load_model=False)
     
-    env = PentagoEnv()    
-    agent1 = TatsuyaokuboDqnAgent(env.action_space.n, "Tatsuyaokubo-1", load_model=False) # DeepQAgentKeras(env, "Deep-1", load_model=True) #TabularQAgent(env, "1", unpickle=True)
-    agent2 = RandomAgent(env, "Random-2", load_model=False)
-    
-    for e in range(episodes):
-        agent1.reset()
-        agent2.reset()
+    for e in range(EPISODES):
+        verbose = e % EPISODES_VERBOSE_INTERVAL == 0
+        save = e % EPISODES_SAVE_MODEL_INTERVAL == 0
+        agent.reset()
         obs = env.reset()
         done = False
-        info = None
-        verbose = e % episodes_verbose_interval == 0
-        save = e % episodes_save_model_interval == 0
+        info = {}
         if verbose: print("\n Episode {}".format(e))
         while not done:
-            action1 = agent1.act(obs, verbose)
-            obs_next, reward, done, info = env.step(action1)
-            agent1.learn(obs, action1, obs_next, reward, done, info, verbose)
-            obs = obs_next
-            if not done:
-                action2 = agent2.act(obs, False)
-                obs_next, reward, done, info = env.step(action2)
-                agent2.learn(obs, action1, obs_next, reward, done, info, verbose)
-                obs = obs_next
-            if verbose: print(obs)
-        if verbose: print(info)
-        agent1.trace(verbose, save)
-        agent2.trace(verbose, False)
+            action = agent.get_action(obs, verbose)
+            obs_next, reward, done, info = env.step(action)
+            agent.learn(obs, action, obs_next, reward, done, info, verbose)
+            obs = obs_next            
+        if verbose:
+            print(obs) 
+            print(info)
+        agent.trace(verbose, save)
 
 
 if __name__ == '__main__':

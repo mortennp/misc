@@ -1,44 +1,45 @@
 # -*- coding: utf-8 -*-
+import sys
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
-
-INFO_KEY = "reason"
 
 class PentagoEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 30
     }
-    
-    
-    def __init__(self, size, opponent_starts = False, opponent_policy = None):
+
+    INFO_KEY = "reason"
+    LOOSE_REWARD = -1
+    LEGAL_MOVE_REWARD = -.1
+    TIE_REWARD = 0
+    WIN_REWARD = 1        
+
+
+    def __init__(self, size, opponent_policy, agent_starts = True):
         # Constants
+
+        # State
         self.size = size
         self.halfsize = self.size / 2
-        self.opponent_starts = opponent_starts
-        self.opponent_policy = opponent_policy        
-
-        self.loose_reward = -1
-        self.illegal_move_reward = -.5
-        self.legal_move_reward = -.1
-        self.tie_reward = 0
-        self.win_reward = 1        
-
+        self.agent_starts = agent_starts
+        self.opponent_policy = opponent_policy
+        self.player = 1 if self.agent_starts else 2
+        self.opponent = 2 if self.player == 1 else 1
         self.episode = 0
                
-        # Board: size * 4 quadrants * 2 clock rotate directions
-        moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]        
-        self.action_map = {action: move for (action, move) in enumerate(moves)}
-        #self.moves_map = {move: action for (action, move in enumerate(moves)}
+        # Moves: (size, size) * 4 quadrants * 2 clock rotate directions
+        self.moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]
         
         # Spaces
-        self.observation_space = spaces.Box(low=0, high=2, shape=(self.size, self.size)) # 3 "colors" pr square
-        self.action_space = spaces.Discrete(len(moves))
-
-        self._seed()
-        self._reset()
+        self.nb_moves = len(self.moves)
+        self.action_space = spaces.Discrete(self.nb_moves)
+        self.observation_space = spaces.Tuple((
+            spaces.Box(low=0, high=2, shape=(self.size, self.size)),    # Board, 3 "colors" pr square
+            spaces.Box(low=0, high=1, shape=(self.nb_moves,)),          # Legal moves mask
+            spaces.Discrete(sys.maxsize)))
 
         
     def _seed(self, seed=None):
@@ -48,87 +49,71 @@ class PentagoEnv(gym.Env):
 
     def _reset(self):
         self.episode += 1
-
-        if self.episode % 1000 == 0:
-            print(self.board)
-
-        self.player = 2 if self.opponent_starts else 1
-        self.opponent = 2 if self.player == 1 else 1 
-
         self.board = np.zeros((self.size, self.size), dtype=np.uint8)
-        
-        if self.opponent_starts:
-            _ = self.make_opponent_move()
-
-        return self.board
+                
+        if self.agent_starts:
+            return self.build_observation()
+        else:
+            return self.play_opponent_move()        
 
 
     def _step(self, action):
-        # Take player action
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        legal_move = self.play_action(action, self.player)
-        if not legal_move:
-            return self.board, self.illegal_move_reward, True, {INFO_KEY: "Player {}: illegal move".format(self.player)}
+
+        # Take player action                
+        obs = self.play_action(action, self.player)
 
         player_won = self.has_player_won(self.player)
         if player_won:
-            return self.board, self.win_reward, True, {INFO_KEY: "Player {}: won".format(self.player)}
+            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: won".format(self.player)}
         opponent_won = self.has_player_won(self.opponent) 
         if opponent_won:
-            return self.board, self.loose_reward, True, {INFO_KEY: "Player {}: lost".format(self.player)}
+            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: lost".format(self.player)}
         if player_won and opponent_won:
-            return self.board, self.tie_reward, True, {INFO_KEY: "Player {}: tied".format(self.player)}
+            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: tied".format(self.player)}
 
         # Take opponent action
-        legal_move = self.make_opponent_move()
-        if not legal_move: # Note: tie reward!!!
-            return self.board, self.tie_move_reward, True, {INFO_KEY: "Player {}: illegal move".format(self.opponent)}
+        obs = self.play_opponent_move()
 
         player_won = self.has_player_won(self.player)
         if player_won:
-            return self.board, self.win_reward, True, {INFO_KEY: "Player {}: lost".format(self.opponent)}
+            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: lost".format(self.opponent)}
         opponent_won = self.has_player_won(self.opponent) 
         if opponent_won:
-            return self.board, self.loose_reward, True, {INFO_KEY: "Player {}: won".format(self.opponent)}
+            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: won".format(self.opponent)}
         if player_won and opponent_won:
-            return self.board, self.tie_reward, True, {INFO_KEY: "Player {}: tied".format(self.opponent)}
+            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: tied".format(self.opponent)}
 
         # Return non-terminal state 
-        return self.board, self.legal_move_reward, False, {INFO_KEY: "Player {}: legal move".format(self.player)}
+        return obs, PentagoEnv.LEGAL_MOVE_REWARD, False, {PentagoEnv.INFO_KEY: "Player {}: legal move".format(self.player)}
 
         
     def _render(self, mode='human', close=False):
-        #print(self.board)
-        return
+        if close:
+            return
+
+        outfile = StringIO() if mode == 'ansi' else sys.stdout
+        outfile.write("\n")
+        np.savetxt(outfile, self.board, fmt="%i")
+
+        if mode != 'human':
+            return outfile
 
 
-    def make_opponent_move(self):
-        if self.opponent_policy == None:
-            empty_squares = np.argwhere(self.board == 0)
-            nb_legal_moves = len(empty_squares)
-            assert nb_legal_moves > 0, "No possible legal moves for opponent"
-            square_idx = self.np_random.randint(nb_legal_moves)
-            x = empty_squares[square_idx][0]
-            y = empty_squares[square_idx][1]
-            quadrant = self.np_random.randint(2)
-            clockwise = self.np_random.randint(2)
-            return self.play_move(x, y, quadrant, clockwise, self.opponent)
-        else:
-            action = opponent_policy.get_action()
-            return self.play_action(action, self.opponent)      
+    def play_opponent_move(self):
+        action = self.opponent_policy.get_action(self.build_observation(), False)
+        return self.play_action(action, self.opponent)      
             
         
     def play_action(self, action, player):
-        # Lookup move details
-        move = self.action_map[action]
-        ((x,y), quadrant, clockwise) = move
+        # Lookup move details        
+        ((x,y), quadrant, clockwise) = self.moves[action]
         return self.play_move(x, y, quadrant, clockwise, player)
 
 
     def play_move(self, x, y, quadrant, clockwise, player):
         # Check legal move
-        if self.board[x, y] > 0:
-            return False
+        assert self.is_legal_move(x,y), "illegal move" 
 
         # Make move
         self.board[x, y] = player
@@ -144,9 +129,13 @@ class PentagoEnv(gym.Env):
                     oldboard[x_ + self.halfsize - 1 - j, y_ + i] if clockwise else \
                     oldboard[x_ + j][y_ + self.halfsize - 1 - i]
 
-        return True
+        return self.build_observation()
 
-    
+
+    def is_legal_move(self, x, y):
+        return self.board[x, y] == 0
+
+
     def has_player_won(self, player):
         self.winseq = np.ones(self.size - 1) * player
 
@@ -177,3 +166,16 @@ class PentagoEnv(gym.Env):
         
     def is_winseq(self, seq):
         return np.all(np.equal(seq, self.winseq))
+
+
+    def build_observation(self):
+        mask = np.array([self.is_legal_move(x,y) for ((x,y), _, _) in self.moves], dtype=np.uint8)
+
+        key = 0
+        for x in range(self.size):
+            for y in range(self.size):
+                key = 3*key + self.board[x, y] 
+
+        return (self.board, mask, key)       
+
+    
