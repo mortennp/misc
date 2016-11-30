@@ -1,29 +1,31 @@
 # -*- coding: utf-8 -*-
 import sys
+import numpy as np
+import StringIO
 import gym
 from gym import spaces
 from gym.utils import seeding
-import numpy as np
 
 class PentagoEnv(gym.Env):
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 30
+        "render.modes": ["human", "ansi"]
     }
 
-    INFO_KEY = "reason"
+    INFO_KEY = "Result"
     LOOSE_REWARD = -1
     LEGAL_MOVE_REWARD = -.1
     TIE_REWARD = 0
     WIN_REWARD = 1        
 
 
-    def __init__(self, size, opponent_policy, agent_starts = True):
+    def __init__(self, size, opponent_policy, agent_starts = True, to_win=None):
         # Constants
 
         # State
         self.size = size
-        self.halfsize = self.size / 2
+        self.halfsize = self.size / 2 
+        self.win_seq_len = self.size - 1 if to_win is None else to_win
+        self.max_nb_actions = size ** 2
         self.agent_starts = agent_starts
         self.opponent_policy = opponent_policy
         self.player = 1 if self.agent_starts else 2
@@ -32,7 +34,7 @@ class PentagoEnv(gym.Env):
                
         # Moves: (size, size) * 4 quadrants * 2 clock rotate directions
         self.moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(4) for c in range(2)]
-        
+                
         # Spaces
         self.nb_moves = len(self.moves)
         self.action_space = spaces.Discrete(self.nb_moves)
@@ -50,6 +52,7 @@ class PentagoEnv(gym.Env):
     def _reset(self):
         self.episode += 1
         self.board = np.zeros((self.size, self.size), dtype=np.uint8)
+        self.nb_actions = 0
                 
         if self.agent_starts:
             return self.build_observation()
@@ -64,44 +67,40 @@ class PentagoEnv(gym.Env):
         obs = self.play_action(action, self.player)
 
         player_won = self.has_player_won(self.player)
-        if player_won:
-            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: won".format(self.player)}
-        opponent_won = self.has_player_won(self.opponent) 
-        if opponent_won:
-            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: lost".format(self.player)}
-        if player_won and opponent_won:
-            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: tied".format(self.player)}
+        opponent_won = self.has_player_won(self.opponent)
+        if player_won and not opponent_won:
+            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} won".format(self.player)} 
+        if opponent_won and not player_won:
+            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} lost".format(self.player)}
+        if (player_won and opponent_won) or self.nb_actions == self.max_nb_actions:
+            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} tied".format(self.player)}
 
         # Take opponent action
         obs = self.play_opponent_move()
 
         player_won = self.has_player_won(self.player)
-        if player_won:
-            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: lost".format(self.opponent)}
         opponent_won = self.has_player_won(self.opponent) 
-        if opponent_won:
-            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: won".format(self.opponent)}
-        if player_won and opponent_won:
-            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {}: tied".format(self.opponent)}
+        if player_won and not opponent_won:
+            return obs, PentagoEnv.WIN_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} lost".format(self.opponent)}
+        if opponent_won and not player_won:
+            return obs, PentagoEnv.LOOSE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} won".format(self.opponent)}
+        if (player_won and opponent_won) or self.nb_actions == self.max_nb_actions:
+            return obs, PentagoEnv.TIE_REWARD, True, {PentagoEnv.INFO_KEY: "Player {} tied".format(self.opponent)}
 
         # Return non-terminal state 
-        return obs, PentagoEnv.LEGAL_MOVE_REWARD, False, {PentagoEnv.INFO_KEY: "Player {}: legal move".format(self.player)}
+        return obs, PentagoEnv.LEGAL_MOVE_REWARD, False, {PentagoEnv.INFO_KEY: "Player {} legal move".format(self.player)}
 
         
-    def _render(self, mode='human', close=False):
+    def _render(self, mode="human", close=False):
         if close:
             return
-
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
-        outfile.write("\n")
-        np.savetxt(outfile, self.board, fmt="%i")
-
-        if mode != 'human':
-            return outfile
+        outfile = StringIO.StringIO() if mode == "ansi" else sys.stdout
+        outfile.write(np.array_str(self.board) + "\n")
+        return outfile
 
 
     def play_opponent_move(self):
-        action = self.opponent_policy.get_action(self.build_observation(), False)
+        action = self.opponent_policy.get_action(self.build_observation())
         return self.play_action(action, self.opponent)      
             
         
@@ -129,6 +128,7 @@ class PentagoEnv(gym.Env):
                     oldboard[x_ + self.halfsize - 1 - j, y_ + i] if clockwise else \
                     oldboard[x_ + j][y_ + self.halfsize - 1 - i]
 
+        self.nb_actions += 1
         return self.build_observation()
 
 
@@ -137,35 +137,62 @@ class PentagoEnv(gym.Env):
 
 
     def has_player_won(self, player):
-        self.winseq = np.ones(self.size - 1) * player
+        self.win_seq = np.ones(self.win_seq_len) * player
+        if self.win_seq_len == self.size - 1:
+            return self.has_player_won_size_minus_1()
+        else:
+            return self.has_player_won_full_size()
 
+
+    def has_player_won_size_minus_1(self):
         #check lines & columns
         for i in range(self.size):
-            if self.is_winseq(self.board[i,:-1]) or self.is_winseq(self.board[i,1:]):
+            if self.is_win_seq(self.board[i,:-1]) or self.is_win_seq(self.board[i,1:]):
                 return True
-            if self.is_winseq(self.board[:-1,i]) or self.is_winseq(self.board[1:,i]):
+            if self.is_win_seq(self.board[:-1,i]) or self.is_win_seq(self.board[1:,i]):
                 return True
                 
         #check 2 main diagonals
         diag = self.board.diagonal()
-        if self.is_winseq(diag[:-1]) or self.is_winseq(diag[1:]):
+        if self.is_win_seq(diag[:-1]) or self.is_win_seq(diag[1:]):
             return True
         flipped = np.fliplr(self.board)
         diag = flipped.diagonal()
-        if self.is_winseq(diag[:-1]) or self.is_winseq(diag[1:]):
+        if self.is_win_seq(diag[:-1]) or self.is_win_seq(diag[1:]):
             return True
                 
         #check the 4 small diagonals
-        if self.is_winseq(self.board.diagonal(offset=1)) or self.is_winseq(self.board.diagonal(offset=-1)):
+        if self.is_win_seq(self.board.diagonal(offset=1)) or self.is_win_seq(self.board.diagonal(offset=-1)):
             return True
-        if self.is_winseq(flipped.diagonal(offset=1)) or self.is_winseq(flipped.diagonal(offset=-1)):
+        if self.is_win_seq(flipped.diagonal(offset=1)) or self.is_win_seq(flipped.diagonal(offset=-1)):
             return True
             
         return False
+
+
+    def has_player_won_full_size(self):
+        #check lines & columns
+        for i in range(self.size):
+            if self.is_win_seq(self.board[i,:]):
+                return True
+            if self.is_win_seq(self.board[:,i]):
+                return True
+                
+        #check 2 main diagonals
+        diag = self.board.diagonal()
+        if self.is_win_seq(diag):
+            return True
+        flipped = np.fliplr(self.board)
+        diag = flipped.diagonal()
+        if self.is_win_seq(diag):
+            return True
+                            
+        return False        
         
         
-    def is_winseq(self, seq):
-        return np.all(np.equal(seq, self.winseq))
+    def is_win_seq(self, seq):
+        if self.win_seq_len != len(seq): return False
+        return np.all(np.equal(seq, self.win_seq))   
 
 
     def build_observation(self):
