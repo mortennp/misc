@@ -9,7 +9,7 @@ SIZE = 4
 AGENT_STARTS = True
 
 EPISODES = 1000000
-EPISODES_VERBOSE_INTERVAL = 10000
+EPISODES_VERBOSE_INTERVAL = 1000
 EPISODES_SAVE_MODEL_INTERVAL = 100000
 
 def main():    
@@ -19,16 +19,16 @@ def main():
     env.seed(SEED)
     nb_actions = env.action_space.n
 
-    agent = TabularQAgent(env, "Player 1 Tabular Q", opponent_policy, load_model=False)
+    agent = TabularQAgent(env, "Player 1 Tabular Q", opponent_policy, load_model=True)
     
     for e in range(EPISODES):
         verbose = e % EPISODES_VERBOSE_INTERVAL == 0
         save = e % EPISODES_SAVE_MODEL_INTERVAL == 0
-        agent.reset()
+        if verbose: print("\n Episode {}".format(e))
         obs = env.reset()
         done = False
         info = {}
-        if verbose: print("\n Episode {}".format(e))
+        agent.reset()
         while not done:
             action = agent.get_action(obs, verbose)
             obs_next, reward, done, info = env.step(action)

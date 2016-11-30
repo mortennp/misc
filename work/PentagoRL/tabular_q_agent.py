@@ -37,13 +37,12 @@ class TabularQAgent(object):
 
     def get_action(self, obs, verbose=False, eps=None):
         if eps is None: eps = self.config["eps"]         
-        if np.random.random() < eps:
+        if np.random.random() > eps:
             # Exploit
             (_, legal_actions_mask, state_key) = obs
             self.default_q(state_key)
-            actions = self.q[state_key]
-            max_legal_mask = np.logical_and(actions == np.amax(actions), legal_actions_mask)
-            buf = np.argwhere(max_legal_mask == True)
+            legal_actions = np.ma.array(self.q[state_key], mask=np.logical_not(legal_actions_mask))
+            buf = np.argwhere(legal_actions == legal_actions.max())
             buf_idx = np.random.randint(0,len(buf))
             action = buf[buf_idx][0]
             return action
@@ -56,13 +55,15 @@ class TabularQAgent(object):
     def learn(self, obs, action, obs_next, reward, done, info, verbose=False):
         self.actions.append(action)
         self.total_reward += reward
-        (_, _, next_state_key) = obs_next
+
+        (_, next_state_legal_actions_mask, next_state_key) = obs_next
         self.default_q(next_state_key)
-        future = 0.0 if done else np.max(self.q[next_state_key])
+        next_legal_actions = np.ma.array(self.q[next_state_key], mask=np.logical_not(next_state_legal_actions_mask))
+        future = 0.0 if done else next_legal_actions.max()
         (_, _, state_key) = obs
         self.default_q(state_key)
         self.q[state_key][action] -= \
-            self.config["learning_rate"] * (self.q[state_key][action] - reward - self.config["discount"] * future)
+            self.config["learning_rate"] * (self.q[state_key][action] - (reward + self.config["discount"] * future))
             
             
     def trace(self, verbose=False, save=False):
