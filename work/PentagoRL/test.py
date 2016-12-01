@@ -9,10 +9,11 @@ SIZE = 4
 AGENT_STARTS = True
 AGENT_TAG = "Player 1_4x4_4 to win"
 
-EPISODES = 1000000
+EPISODES = 1000
 EPISODES_VERBOSE_INTERVAL = 1000
 EPISODES_SAVE_MODEL_INTERVAL = 100000
 
+#@profile
 def main():    
     np.random.seed(SEED)
     opponent_policy = RandomAgent("Player 2 Random")    
@@ -21,7 +22,7 @@ def main():
     env.seed(SEED)
     nb_actions = env.action_space.n
 
-    agent = TabularQAgent(env, AGENT_TAG, opponent_policy, load_model=True)
+    agent = TabularQAgent(env, AGENT_TAG, opponent_policy, load_model=False)
     
     for e in range(EPISODES):
         verbose = e % EPISODES_VERBOSE_INTERVAL == 0
@@ -32,7 +33,7 @@ def main():
         info = {}
         agent.reset()
         while not done:
-            action = agent.get_action(obs, verbose)
+            action = agent.get_action(obs)
             obs_next, reward, done, info = env.step(action)
             agent.learn(obs, action, obs_next, reward, done, info)
             obs = obs_next            

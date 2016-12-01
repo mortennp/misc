@@ -57,7 +57,6 @@ class TabularQAgent(object):
             return self.exploration_policy.get_action(obs)
         
         
-
     def learn(self, obs, action, obs_next, reward, done, info):
         (_, next_state_legal_actions_mask, next_state_key) = obs_next
         self.default_q(next_state_key)
