@@ -9,7 +9,7 @@ from gym.utils import seeding
 
 class TabularQAgent(object):
     TOTAL_REWARD_KEY = "TotalReward"
-    DELTA_KEY = "Delta"    
+    DELTA_KEY = "MeanDeltaPrStep"
     Q_TABLE_INCREMENT = 1000000
 
     def __init__(self, env, tag, exploration_policy, load_model=True, **userconfig):
@@ -23,7 +23,7 @@ class TabularQAgent(object):
             "init_mean" : 0.0,      # Initialize Q values with this mean
             "init_std" : 0.1,       # Initialize Q values with this standard deviation
             "learning_rate" : 0.3,
-            "eps": 0.5,            # Epsilon in epsilon greedy policies
+            "eps": 1.0,            # Epsilon in epsilon greedy policies
             "discount": 0.98
             }        
         self.config.update(userconfig)
@@ -51,21 +51,21 @@ class TabularQAgent(object):
     def reset(self):
         self.actions = []
         self.total_reward = 0
+        self.total_delta = 0
             
 
-    def get_action(self, obs, eps=None):
-        if eps is None: eps = self.config["eps"]         
-        if self.np_random.rand() > eps:
+    def get_action(self, obs):        
+        if self.np_random.rand() > self.config["eps"]:
             # Exploit
             (_, legal_actions_mask, state_key) = obs
             q_idx = self.default_q(state_key)
             legal_actions = np.ma.array(self.q[q_idx], mask=np.logical_not(legal_actions_mask))
             buf = np.argwhere(legal_actions == legal_actions.max())            
             action = buf[self.np_random.randint(0,len(buf))][0]
-            return action
         else:
             # Explore
-            return self.exploration_policy.get_action(obs)
+            action = self.exploration_policy.get_action(obs)
+        return action
         
         
     def learn(self, obs, action, obs_next, reward, done, info):
@@ -78,25 +78,27 @@ class TabularQAgent(object):
         delta = self.q[q_idx][action] - (reward + self.config["discount"] * future)
         self.q[q_idx][action] -= self.config["learning_rate"] * delta
 
-        self.actions.append(action)
+        self.actions.append(action)        
         self.total_reward += reward
+        self.total_delta += abs(delta)
+
         if done:
             if self.history is None:
                 self.history = pd.DataFrame(columns=[self.TOTAL_REWARD_KEY, self.DELTA_KEY,] + info.keys())
             info[self.TOTAL_REWARD_KEY] = self.total_reward
-            info[self.DELTA_KEY] = abs(delta)
+            info[self.DELTA_KEY] = self.total_delta / len(self.actions)
             self.history.loc[len(self.history)] = info
             
             
     def render(self):        
-        print("'{}' Actions: {}".format(self.tag, self.actions))
-        print("'{}' Mean Total Reward: {}".format(self.tag, self.history[-1000:][self.TOTAL_REWARD_KEY].mean()))
-        print("'{}' Mean Absolute Delta: {}".format(self.tag, self.history[-1000:][self.DELTA_KEY].mean()))
-        print(self.history[-1000:]["Result"].value_counts())        
+        print("'{}' Episodes Mean Total Reward: {}".format(self.tag, self.history[:][self.TOTAL_REWARD_KEY].mean()))
+        print("'{}' Episodes Mean Step Abs Delta: {}".format(self.tag, self.history[:][self.DELTA_KEY].mean()))
+        print(self.history[:]["Result"].value_counts())
+        self.history = None
 
     
     def save(self):
-        print("'{}' States seen: {}".format(self.tag,len(self.state_key_2_q_idx_mapx½)))
+        print("'{}' States seen: {}".format(self.tag,len(self.state_key_2_q_idx_map)))
         np.save(self.q_file_name, self.q)
         with open(self.state_key_2_q_idx_map_file_name, "wb") as f:
             pickle.dump(self.state_key_2_q_idx_map, f, protocol=2)

@@ -11,6 +11,10 @@ class RandomAgent(object):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+
+    def reset(self):
+        return
         
 
     def get_action(self, obs):
