@@ -36,7 +36,7 @@ class PentagoEnv(gym.Env):
                
         # Moves: (size, size) * quadrants *  rotate directions
         self.moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(self.NB_QUADRANTS) for c in range(self.NB_ROTATE_DIRECTIONS)]
-        self.board_to_key_multiplier = np.power(np.ones(self.nb_board_squares)*3, np.arange(self.nb_board_squares))
+        self.board_to_key_multiplier = np.power(np.ones(self.nb_board_squares)*3, np.arange(self.nb_board_squares-1, -1, -1))
                 
         # Spaces
         self.nb_moves = len(self.moves)
@@ -62,7 +62,7 @@ class PentagoEnv(gym.Env):
         else:
             return self.play_opponent_move()        
 
-    @profile
+    #@profile
     def _step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
 
@@ -138,7 +138,7 @@ class PentagoEnv(gym.Env):
     def is_legal_move(self, x, y):
         return self.board[x, y] == 0
 
-    @profile
+    #@profile
     def has_player_won(self, player):
         self.win_seq = np.ones(self.win_seq_len) * player
         if self.win_seq_len == self.size - 1:
@@ -146,7 +146,7 @@ class PentagoEnv(gym.Env):
         else:
             return self.has_player_won_full_size()
 
-    @profile
+    #@profile
     def has_player_won_size_minus_1(self):
         #check lines & columns
         for i in range(self.size):
@@ -173,7 +173,7 @@ class PentagoEnv(gym.Env):
         return False
 
     
-    @profile
+    #@profile
     def has_player_won_full_size(self):
         #check lines & columns
         for i in range(self.size):

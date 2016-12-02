@@ -19,7 +19,7 @@ class TabularQAgent(object):
         self.config = {            
             "init_mean" : 0.0,      # Initialize Q values with this mean
             "init_std" : 0.1,       # Initialize Q values with this standard deviation
-            "learning_rate" : 0.5,
+            "learning_rate" : 0.3,
             "eps": 0.5,            # Epsilon in epsilon greedy policies
             "discount": 0.98
             }        
@@ -27,7 +27,7 @@ class TabularQAgent(object):
 
         self.history = None
         
-        self.q_file_name = "tabular-q_{}.p".format(tag)
+        self.q_file_name = "tabular-q_{}.p2".format(tag)
         if load_model and path.isfile(self.q_file_name):
             print "'{}' Loading from {}".format(self.tag, self.q_file_name)
             with open(self.q_file_name, "rb") as f:
@@ -86,10 +86,7 @@ class TabularQAgent(object):
     
     def save(self):
         print("'{}' States seen: {}".format(self.tag,len(self.q)))
-        #with h5py.File(self.q_file_name, "w") as f:
-        #    for state_key, action_values in self.q.items():
-        #            f["/" + state_key] = action_values
-        with open(self.q_file_name + "2", "wb") as f:
+        with open(self.q_file_name, "wb") as f:
             pickle.dump(self.q, f, protocol=2)
 
 
