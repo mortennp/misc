@@ -22,7 +22,6 @@ class PentagoEnv(gym.Env):
 
 
     def __init__(self, size, opponent_policy, agent_starts = True, to_win=None):
-
         # State
         self.size = size
         self.halfsize = self.size / 2 
@@ -33,10 +32,13 @@ class PentagoEnv(gym.Env):
         self.player = 1 if self.agent_starts else 2
         self.opponent = 2 if self.player == 1 else 1
         self.episode = 0
+        self.np_random = None
+
+        # Constants
+        self.board_to_key_multiplier = np.power(np.ones(self.nb_board_squares)*3, np.arange(self.nb_board_squares-1, -1, -1))
                
         # Moves: (size, size) * quadrants *  rotate directions
-        self.moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(self.NB_QUADRANTS) for c in range(self.NB_ROTATE_DIRECTIONS)]
-        self.board_to_key_multiplier = np.power(np.ones(self.nb_board_squares)*3, np.arange(self.nb_board_squares-1, -1, -1))
+        self.moves = [((x,y), q, c) for x in range(self.size) for y in range(self.size) for q in range(self.NB_QUADRANTS) for c in range(self.NB_ROTATE_DIRECTIONS)]        
                 
         # Spaces
         self.nb_moves = len(self.moves)
@@ -61,6 +63,7 @@ class PentagoEnv(gym.Env):
             return self.build_observation()
         else:
             return self.play_opponent_move()        
+
 
     #@profile
     def _step(self, action):
@@ -105,12 +108,14 @@ class PentagoEnv(gym.Env):
     def play_opponent_move(self):
         action = self.opponent_policy.get_action(self.build_observation())
         return self.play_action(action, self.opponent)      
+
             
     #@profile    
     def play_action(self, action, player):
         # Lookup move details        
         ((x,y), quadrant, clockwise) = self.moves[action]
         return self.play_move(x, y, quadrant, clockwise, player)
+
 
     #@profile
     def play_move(self, x, y, quadrant, clockwise, player):
@@ -138,6 +143,7 @@ class PentagoEnv(gym.Env):
     def is_legal_move(self, x, y):
         return self.board[x, y] == 0
 
+
     #@profile
     def has_player_won(self, player):
         self.win_seq = np.ones(self.win_seq_len) * player
@@ -145,6 +151,7 @@ class PentagoEnv(gym.Env):
             return self.has_player_won_size_minus_1()
         else:
             return self.has_player_won_full_size()
+
 
     #@profile
     def has_player_won_size_minus_1(self):
@@ -197,6 +204,7 @@ class PentagoEnv(gym.Env):
     def is_win_seq(self, seq):
         if self.win_seq_len != len(seq): return False
         return np.all(np.equal(seq, self.win_seq))   
+
 
     #@profile
     def build_observation(self):
