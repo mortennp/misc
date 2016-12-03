@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sys import maxint
 import numpy as np
-import  ipyparallel as ipp
+from ipyparallel import Client
 from gym.utils import seeding
 from pentago_ai import PentagoEnv, TabularQAgent, Episode
 
@@ -13,8 +13,8 @@ AGENT_TAG = "Player 1_4x4_4 to win"
 BASE_SEED = 12345
 EPOCHS = 1000
 EPOCHS_VERBOSE_INTERVAL = 1
-EPOCHS_SAVE_MODEL_INTERVAL = 100
-EPISODES_PR_EPOCH = 100000
+EPOCHS_SAVE_MODEL_INTERVAL = 10
+EPISODES_PR_EPOCH = 10000
 
 
 def simulate_episode(env, agent):
@@ -38,8 +38,6 @@ def simulate_episodes(nb_episodes):
     from gym.utils import seeding
     from pentago_ai import RandomAgent, PentagoEnv, TabularQAgent, Episode
 
-    CHUNK_SIZE = 1000
-
     np_random, _ = seeding.np_random(base_seeds[0])
 
     opponent_policy = RandomAgent("Player 2 Random")
@@ -53,13 +51,9 @@ def simulate_episodes(nb_episodes):
     exploring_agent.seed(np_random.randint(maxint))
 
     episodes = []
-    for epi in range(1, nb_episodes):
+    for epi in range(nb_episodes):
         episodes.append(simulate_episode(env, exploring_agent))
-        if epi % CHUNK_SIZE == 0:
-            yield episodes
-            episodes = []
-    if len(episodes) > 0:
-        yield episodes 
+    return episodes
 
 
 def train_agent(agent, reset_obs, feedbacks):
@@ -70,36 +64,12 @@ def train_agent(agent, reset_obs, feedbacks):
         obs = obs_next    
 
 
-def remote_generator(view, f, *args, **kwargs):
-    """Run a generator function remotely, returning a generator that yields in the same way."""
-    # First, create the iterator by calling our function remotely
-    def _create_iterator(f, *a, **kw):
-        """Creates an iterator, storing it in the interactive namespace as _iterator"""
-        g = globals()
-        generator = f(*a, **kw)
-        g['_iterator'] = iter(generator)
-    
-    # Create the remote iterator
-    view.apply_sync(_create_iterator, f, *args, **kwargs)
-    
-    # then iterate over it remotely by applying the `next` builtin
-    r_iterator = ipp.Reference('_iterator')
-    while True:
-        try:
-            yield view.apply_sync(next, r_iterator)
-        except ipp.RemoteError as e:
-            if e.ename == 'StopIteration':
-                raise StopIteration()
-            else:
-                raise
-
-
 #@profile
 def main():
     np_random, seed = seeding.np_random(BASE_SEED)
     print("Base seed: {}, derived seed: {}".format(BASE_SEED, seed))
 
-    rc = ipp.Client()
+    rc = Client()
     dview = rc[:]
     nb_nodes = len(rc.ids)
     dview.push({
@@ -117,23 +87,19 @@ def main():
     for epoch in range(1, EPOCHS):
         verbose = epoch >= EPOCHS_VERBOSE_INTERVAL and epoch % EPOCHS_VERBOSE_INTERVAL == 0
         if verbose:
-            print("\n Epoch {}".format(epoch))
+            print("\nEpoch {}".format(epoch))
 
-        dview.scatter('base_seeds', np_random.randint(maxint, size=nb_nodes))                
-        epi = 1
-        for result in remote_generator(dview, simulate_episodes, episodes_pr_node):
-            for episodes in result:
-                for episode in episodes:
-                    if verbose: print("    episode: {}\r".format(epi))
-                    train_agent(exploiting_agent, episode.reset_obs, episode.feedbacks)
-                    epi += 1
+        dview.scatter('base_seeds', np_random.randint(maxint, size=nb_nodes))
+        result = dview.apply_async(simulate_episodes, episodes_pr_node)
+        
+        #epi = 1
+        for _, episodes in enumerate(result):
+            for episode in episodes:
+                #if verbose: print("\r    episode: {}".format(epi))
+                train_agent(exploiting_agent, episode.reset_obs, episode.feedbacks)
+                #epi += 1
 
         if verbose:
-            # final_obs = None
-            # for (action, obs_next, reward, done, info) in feedbacks:
-            #     print("Action: {}, Reward: {}".format(action, reward))
-            #     final_obs = obs_next
-            # print(final_obs[0])
             exploiting_agent.render() 
 
         save = epoch >= EPOCHS_SAVE_MODEL_INTERVAL and epoch % EPOCHS_SAVE_MODEL_INTERVAL == 0
