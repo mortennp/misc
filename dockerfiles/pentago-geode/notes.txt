@@ -1,0 +1,54 @@
+GEODE
+
+In utility/config.h line 160 hardcode to 1:
+
+	// In other cases, assume not available
+	#define GEODE_HAS_CPP11_STD_HEADER(header) 1
+	#endif
+
+In array/Array.cpp line 27 remove geode:: twice:
+
+	  template<class T, size_t N> struct NumpyIsScalar<UniqueDummyWrapper<T, N>>:public mpl::true_{};
+	  template<class T, size_t N> struct NumpyScalar<UniqueDummyWrapper<T, N>>:public NumpyScalar<T>{};
+
+In main SConstruct set Werror and sse to 0:
+
+  ('Werror','turn warnings into errors',0),
+
+To solve ImportError:
+
+	g++ -o geode/geode_wrap.so -shared build/native/release/geode/module.os -Wl,-Bsymbolic -Wl,-soname=geode_wrap.so -Lbuild/native/release/lib -Llib -lgeode
+	
+
+sudo scons install does not work, so:
+
+	sudo chmod -R 777 /usr/local
+	scons install
+	python setup.py install
+
+
+
+PENTAGO
+
+Replace "has_trivial_destructor" with "is_trivially_destructible" two places in pentago code base.
+
+Set Werror to 0 in main SConstruct 
+
+sudo apt-get install libpng16-dev
+
+To solve ImportError about not finding init_pentago_core:
+	g++ -o pentago/pentago_core.so -shared build/native/release/pentago/module.os  -Wl,-Bsymbolic -Wl,-soname=pentago_core.so -Lbuild/native/release/lib -Llib -lpentago_core
+
+	scons install
+	python setup.py install
+
+WEB
+
+To do the nodejs/npm thing first:
+	pip install git+https://chromium.googlesource.com/external/gyp
+
+Then in bindings.gyp under web/pentago:
+	- Change CXX to ['CXX','/usr/bin/g++].
+	- And add /home/mortennp/anaconda/envs/tf-keras-gym/include/python2.7 and /home/mortennp/anaconda/envs/tf-keras-gym/lib/python2.7/site-packages/numpy/core/include to 'include_dirs'
+
+Open /usr/local/include/geode/utility/config.h and comment out annoying SSE line.
