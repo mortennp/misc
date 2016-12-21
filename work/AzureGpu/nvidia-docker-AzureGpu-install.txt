@@ -1,0 +1,68 @@
+# Connect
+chmod 600 GpuPrivateKey.key
+ssh -i GpuPrivateKey.key mortennp@52.179.120.25
+
+
+# Prepare NVIDIA driver update
+sudo apt-get update
+sudo apt-get upgrade
+sudo reboot
+sudo apt-get install wget curl git build-essential
+
+
+# Install NVIDIA driver
+# http://us.download.nvidia.com/XFree86/Linux-x86_64/375.20/README/index.html
+wget http://us.download.nvidia.com/XFree86/Linux-x86_64/375.20/NVIDIA-Linux-x86_64-375.20.run
+sudo /bin/bash ./NVIDIA-Linux-x86_64-375.20.run
+sudo reboot
+nvidia-smi -q | head
+
+
+# NOT DONE - AWS ONLY(?)
+# Optimizing GPU Settings (P2 Instances Only)
+#sudo nvidia-smi -pm 1
+#sudo nvidia-smi --auto-boost-default=0
+#sudo nvidia-smi -ac 2505,875
+
+
+# Install docker
+# https://docs.docker.com/engine/installation/linux/ubuntulinux/
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates
+sudo apt-key adv \
+               --keyserver hkp://ha.pool.sks-keyservers.net:80 \
+               --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+echo "deb https://apt.dockerproject.org/repo ubuntu-xenial main" | sudo tee /etc/apt/sources.list.d/docker.list
+sudo apt-get update
+apt-cache policy docker-engine # CHECK
+sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual
+sudo apt-get update
+sudo apt-get install docker-engine
+sudo service docker start
+sudo docker run hello-world
+#sudo groupadd docker
+sudo usermod -aG docker mortennp
+#logout and back in
+docker run hello-world
+
+
+# Install nvidia-docker
+# Install nvidia-docker and nvidia-docker-plugin
+# https://github.com/NVIDIA/nvidia-docker
+# Install nvidia-docker and nvidia-docker-plugin
+wget -P /tmp https://github.com/NVIDIA/nvidia-docker/releases/download/v1.0.0-rc.3/nvidia-docker_1.0.0.rc.3-1_amd64.deb
+sudo dpkg -i /tmp/nvidia-docker*.deb && rm /tmp/nvidia-docker*.deb
+# Test nvidia-smi
+nvidia-docker run --rm tensorflow/tensorflow:latest-gpu nvidia-smi
+
+
+# ShellInABox
+# http://www.tecmint.com/shell-in-a-box-a-web-based-ssh-terminal-to-access-remote-linux-servers/
+sudo apt-cache search shellinabox
+sudo nano /etc/default/shellinabox
+# Change port to 443
+sudo service shellinabox restart
+# Allow HTTPS into Azure NSG
+sudo adduser siab
+sudo usermod -aG docker siab
+#sudo adduser siab sudo
