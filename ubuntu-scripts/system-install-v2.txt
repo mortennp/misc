@@ -1,0 +1,54 @@
+# (Install Ubuntu with LVM (Logical Volume Management))
+- Use "Advanced" partitioning and create DATA volume?
+
+
+# UFW
+- sudo ufw enable
+
+
+# Upgrade
+- sudo apt-get update
+- sudo apt-get upgrade
+- DO NOT:
+	* (Start System Updater aka update-manager, set "Notify me of new Ubuntu version" to "For any new version")
+	* sudo do-release-upgrade, or (use System Updater)
+
+
+# (Make Linux use 'Local' time)
+- edit /etc/default/rcS
+- add or change the following section
+	# Set UTC=yes if your hardware clock is set to UTC (GMT)
+	UTC=no
+
+
+# Always show GRUB
+- sudo apt-get install gksu
+- Run Gedit as root (gksu gedit), and open the file /etc/default/grub.
+- There should be something like this in there:
+
+	GRUB_HIDDEN_TIMEOUT=0
+	GRUB_HIDDEN_TIMEOUT_QUIET=true
+
+- Change it to this:
+
+	GRUB_HIDDEN_TIMEOUT=10
+	GRUB_HIDDEN_TIMEOUT_QUIET=false
+
+- Also set GRUB_DEFAULT to zero-based index of full text of default menu item.
+- Save it, run sudo update-grub from a terminal, and reboot. The GRUB menu should show up.
+
+
+# Hide disks rule
+- (Edit 99-hide-disks.rules if new HDDs)
+- sudo cp ~/Documents/misc/ubuntu-scripts/99-hide-disks.rules /etc/udev/rules.d/
+
+
+# Git
+- sudo apt-get install git
+- git config --global user.email "mortennp@hotmail.com"
+- git config --global user.name "mortennp"
+#- git config --global push.default simple
+
+
+# Chrome
+

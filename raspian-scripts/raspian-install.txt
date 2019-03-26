@@ -1,0 +1,36 @@
+# UFW
+- sudo apt-get install ufw
+- sudo ufw enable
+- sudo ufw allow from 10.168.1.0/24 to any port 22 # SSH
+- sudo ufw allow from 10.168.1.0/24 to any port 5901 # VNC for Display 1
+
+
+# Upgrade
+- sudo apt-get update
+- sudo apt-get upgrade
+
+
+# Secure
+- https://www.raspberrypi.org/documentation/configuration/security.md
+
+
+# raspi-config
+- Enable ssh, camera,
+
+
+# Wifi networks
+- wpa_passphrase "<SSID>"
+- sudo nano /etc/wpa_supplicant/wpa_supplicant.conf # Set priorities
+- sudo wpa_cli -i wlan0 reconfigure # Reload wifi config
+
+
+# Git
+- sudo apt-get install git
+- git config --global user.email "mortennp@hotmail.com"
+- git config --global user.name "mortennp"
+#- git config --global push.default simple
+
+
+# Docker
+- 1. [Install Docker and Compose](https://manre-universe.net/how-to-run-docker-and-docker-compose-on-raspbian/).
+- 2. Fix the [UFW flaw](https://www.techrepublic.com/article/how-to-fix-the-docker-and-ufw-security-flaw/) in Docker.
