@@ -1,8 +1,8 @@
 # UFW
 - sudo apt-get install ufw
+- sudo ufw allow from 192.168.1.0/24 to any port 22 # SSH
+- sudo ufw allow from 192.168.1.0/24 to any port 5901 # VNC for Display 1
 - sudo ufw enable
-- sudo ufw allow from 10.168.1.0/24 to any port 22 # SSH
-- sudo ufw allow from 10.168.1.0/24 to any port 5901 # VNC for Display 1
 
 
 # Upgrade
@@ -36,6 +36,8 @@
 - 2. Fix the [UFW flaw](https://www.techrepublic.com/article/how-to-fix-the-docker-and-ufw-security-flaw/) in Docker.
 
 # motioneye
+sudo ufw allow from 192.168.1.0/24 to any port 8765 
+
 sudo docker run --name="motioneye" \
     -p 8765:8765 \
     --hostname="motioneye" \
@@ -45,4 +47,4 @@ sudo docker run --name="motioneye" \
     --device=/dev/video0 \
     --restart="always" \
     --detach=true \
-    ccrisan/motioneye:master-amd64
+    ccrisan/motioneye:master-armhf
