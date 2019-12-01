@@ -34,3 +34,15 @@
 # Docker
 - 1. [Install Docker and Compose](https://manre-universe.net/how-to-run-docker-and-docker-compose-on-raspbian/).
 - 2. Fix the [UFW flaw](https://www.techrepublic.com/article/how-to-fix-the-docker-and-ufw-security-flaw/) in Docker.
+
+# motioneye
+sudo docker run --name="motioneye" \
+    -p 8765:8765 \
+    --hostname="motioneye" \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v /home/mortennp/Documents/motioneye/conf:/etc/motioneye \
+    -v /home/mortennp/Documents/motioneye/data:/var/lib/motioneye \
+    --device=/dev/video0 \
+    --restart="always" \
+    --detach=true \
+    ccrisan/motioneye:master-amd64
